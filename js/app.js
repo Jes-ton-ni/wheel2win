@@ -58,12 +58,14 @@
       this.entries = this._loadEntries();
       this.history = Storage.get("history", []);
       if (!Array.isArray(this.history)) this.history = [];
-      this.settings = Storage.get("settings", { sound: true, chargeSeconds: 3 });
+      this.settings = Storage.get("settings", { sound: true, chargeSeconds: 3, controlsVisible: false, entriesVisible: true });
       if (!this.settings || typeof this.settings !== "object") {
-        this.settings = { sound: true, chargeSeconds: 3 };
+        this.settings = { sound: true, chargeSeconds: 3, controlsVisible: false, entriesVisible: true };
       }
       if (typeof this.settings.sound !== "boolean") this.settings.sound = true;
       if (typeof this.settings.chargeSeconds !== "number") this.settings.chargeSeconds = 3;
+      if (typeof this.settings.controlsVisible !== "boolean") this.settings.controlsVisible = false;
+      if (typeof this.settings.entriesVisible !== "boolean") this.settings.entriesVisible = true;
 
       // --- core objects ---
       this.wheel = new Wheel(this.el.wheelCanvas, this.el.wheelStage, this.entries);
@@ -89,6 +91,8 @@
       this.renderEntries();
       this.renderHistory();
       this.syncSettingsUI();
+      this.applyControlsVisibility(this.settings.controlsVisible);
+      this.applyEntriesVisibility(this.settings.entriesVisible);
       this.syncRotationUI();
       this.updateStrengthUI(0);
     }
@@ -96,15 +100,17 @@
     _collectElements() {
       var ids = [
         "wheelStage", "wheelCanvas", "dragHint", "entryCountBadge", "entryCountMini",
-        "strengthCard", "strengthPercent", "powerMeterFill", "powerDot", "powerLabel",
-        "holdBtn", "holdSub", "rotationSlider", "angleValue",
+        "strengthCard", "strengthPercent", "powerMeterFill",
+        "holdBtn", "rotationSlider", "angleValue",
         "nudgeDown15", "nudgeDown1", "nudgeUp1", "nudgeUp15", "resetPositionBtn",
         "entriesInput", "colorRow",
         "shuffleEntriesBtn", "randomizeColorsBtn", "resetEntriesBtn", "clearEntriesBtn",
         "soundToggle", "soundLabel", "chargeSpeedSlider", "chargeSpeedValue",
         "resetWheelBtn", "fullscreenBtn", "fullscreenBtn2",
+        "controlsToggleBtn", "controlsToggleLabel", "sideColumn",
+        "entriesToggleBtn", "entriesToggleLabel", "entriesPanel", "wheelRow",
         "historyList", "historyCount", "clearHistoryBtn",
-        "winnerModal", "modalBackdrop", "modalCloseX", "winnerName", "winnerStats",
+        "winnerModal", "modalBackdrop", "modalCloseX", "winnerName",
         "closeModalBtn", "spinAgainBtn", "removeWinnerBtn", "confettiCanvas", "toast"
       ];
       var el = {};
@@ -135,7 +141,7 @@
 
     setBusy(busy) {
       document.body.classList.toggle("is-busy", busy);
-      this.el.holdBtn.classList.toggle("inactive", busy);
+      // Keep the button visually normal; state checks still block charging while busy.
       this.el.holdBtn.setAttribute("aria-disabled", busy ? "true" : "false");
       this.el.entriesInput.disabled = busy;
       var swatches = this.el.colorRow.querySelectorAll(".color-swatch");
@@ -194,7 +200,6 @@
       this.el.holdBtn.classList.add("charging");
       this.el.holdBtn.classList.remove("maxed");
       this.el.strengthCard.classList.remove("maxed");
-      this.el.holdSub.textContent = "Charging…";
       this.updateStrengthUI(0);
 
       var self = this;
@@ -236,7 +241,8 @@
       this.el.holdBtn.classList.remove("charging", "maxed");
       this.el.strengthCard.classList.remove("maxed");
       this.updateStrengthUI(strength); // freeze the released value during the spin
-      this.el.holdSub.textContent = "Spinning…";
+      // The button itself returns to its resting look as soon as it is released.
+      this.el.holdBtn.style.setProperty("--glow", "0");
       this.startSpin(strength);
     }
 
@@ -244,11 +250,8 @@
       var value = Math.round(strength);
       var info = powerInfo(strength);
       this.el.strengthPercent.textContent = value + "%";
-      this.el.powerMeterFill.style.width = value + "%";
+      this.el.powerMeterFill.style.height = value + "%";
       this.el.strengthCard.style.setProperty("--power-color", info.color);
-      this.el.powerDot.style.setProperty("--power-color", info.color);
-      this.el.powerLabel.textContent = info.label;
-      this.el.powerLabel.style.color = info.color;
       this.el.holdBtn.style.setProperty("--glow", (strength / 100).toFixed(3));
     }
 
@@ -259,7 +262,6 @@
       if (this.entries.length < 2) {
         this.toast("Add at least two entries to spin");
         this.setState(State.IDLE);
-        this.el.holdSub.textContent = "Press & hold to charge";
         this.updateStrengthUI(0);
         return;
       }
@@ -307,24 +309,19 @@
       this.renderHistory();
 
       this.setState(State.RESULT);
-      this.showWinner(entry, record, index);
+      this.showWinner(entry, index);
       this.playWin();
       this.launchConfetti();
-      this.el.holdSub.textContent = "Press & hold to charge";
 
       // No buffer: the meter is back at 0% the instant the spin finishes.
       this.updateStrengthUI(0);
     }
 
     /* ================= WINNER MODAL ================= */
-    showWinner(entry, record, index) {
+    showWinner(entry, index) {
       this.winnerEntryIndex = index;
       this.el.removeWinnerBtn.textContent = 'Remove “' + entry.name + '” from wheel';
       this.el.winnerName.textContent = entry.name;
-      this.el.winnerStats.innerHTML =
-        '<span class="stat-pill">Power <b>' + record.strength + '%</b></span>' +
-        '<span class="stat-pill">Rotations <b>' + record.rotations + '</b></span>' +
-        '<span class="stat-pill">Won at <b>' + new Date(record.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + '</b></span>';
       this.el.winnerModal.classList.add("open");
     }
 
@@ -544,6 +541,28 @@
       this.el.chargeSpeedValue.textContent = Number(this.settings.chargeSeconds).toFixed(1) + "s";
     }
 
+    applyControlsVisibility(visible) {
+      this.settings.controlsVisible = !!visible;
+      this.el.sideColumn.hidden = !visible;
+      this.el.controlsToggleBtn.setAttribute("aria-expanded", visible ? "true" : "false");
+      this.el.controlsToggleLabel.textContent = visible ? "Hide Controls" : "Show Controls";
+      this.el.controlsToggleBtn.title = visible ? "Hide manual position and settings" : "Show manual position and settings";
+      this.el.controlsToggleBtn.setAttribute("aria-label", this.el.controlsToggleBtn.title);
+      this.saveSettings();
+    }
+
+    applyEntriesVisibility(visible) {
+      this.settings.entriesVisible = !!visible;
+      this.el.entriesPanel.hidden = !visible;
+      this.el.wheelRow.classList.toggle("entries-hidden", !visible);
+      this.el.entriesToggleBtn.setAttribute("aria-expanded", visible ? "true" : "false");
+      this.el.entriesToggleLabel.textContent = visible ? "Hide Entries" : "Show Entries";
+      var title = visible ? "Hide wheel entries" : "Show wheel entries";
+      this.el.entriesToggleBtn.title = title;
+      this.el.entriesToggleBtn.setAttribute("aria-label", title);
+      this.saveSettings();
+    }
+
     saveSettings() {
       Storage.set("settings", this.settings);
     }
@@ -758,6 +777,12 @@
       el.clearEntriesBtn.addEventListener("click", function () { self.clearEntries(); });
       el.clearHistoryBtn.addEventListener("click", function () { self.clearHistory(); });
       el.resetWheelBtn.addEventListener("click", function () { self.resetWheel(); });
+      el.entriesToggleBtn.addEventListener("click", function () {
+        self.applyEntriesVisibility(!self.settings.entriesVisible);
+      });
+      el.controlsToggleBtn.addEventListener("click", function () {
+        self.applyControlsVisibility(!self.settings.controlsVisible);
+      });
       el.fullscreenBtn.addEventListener("click", function () { self.toggleFullscreen(); });
       el.fullscreenBtn2.addEventListener("click", function () { self.toggleFullscreen(); });
 

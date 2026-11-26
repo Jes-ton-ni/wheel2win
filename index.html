@@ -27,6 +27,14 @@
           <span class="toggle-track"><span class="toggle-thumb"></span></span>
           <span class="toggle-label" id="soundLabel">Sound On</span>
         </label>
+        <button class="icon-btn controls-toggle" id="entriesToggleBtn" type="button" title="Hide wheel entries" aria-label="Hide wheel entries" aria-expanded="true" aria-controls="entriesPanel">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span id="entriesToggleLabel">Hide Entries</span>
+        </button>
+        <button class="icon-btn controls-toggle" id="controlsToggleBtn" type="button" title="Show manual position and settings" aria-label="Show manual position and settings" aria-expanded="false" aria-controls="sideColumn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M6 14v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span id="controlsToggleLabel">Show Controls</span>
+        </button>
         <button class="icon-btn" id="fullscreenBtn" type="button" title="Toggle fullscreen" aria-label="Toggle fullscreen">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
@@ -35,7 +43,7 @@
 
     <!-- ================= MAIN LAYOUT ================= -->
     <main class="layout">
-      <div class="wheel-row">
+      <div class="wheel-row" id="wheelRow">
       <!-- WHEEL + SPIN CONTROL -->
       <section class="panel wheel-panel" aria-label="Wheel">
         <div class="panel-heading">
@@ -55,7 +63,7 @@
 
           <!-- SPIN CONTROL AREA: hand button first, horizontal power indicator on its right -->
           <div class="spin-area">
-            <button class="hold-btn" id="holdBtn" type="button" aria-label="Hold to spin the wheel">
+            <button class="hold-btn" id="holdBtn" type="button">
               <span class="hold-btn-glow" aria-hidden="true"></span>
               <span class="hold-icon" aria-hidden="true">
                 <svg viewBox="0 0 64 64" fill="currentColor">
@@ -68,22 +76,14 @@
                 </svg>
               </span>
               <span class="hold-text">HOLD TO SPIN</span>
-              <span class="hold-sub" id="holdSub">Press &amp; hold to charge</span>
             </button>
 
             <div class="strength-card" id="strengthCard">
-              <div class="strength-head">
-                <span class="strength-title">SPIN POWER</span>
-                <span class="strength-percent" id="strengthPercent">0%</span>
-              </div>
-              <div class="power-meter">
+              <span class="strength-percent" id="strengthPercent">0%</span>
+              <div class="power-meter" aria-hidden="true">
                 <div class="power-meter-fill" id="powerMeterFill"></div>
-                <div class="power-meter-ticks" aria-hidden="true"></div>
               </div>
-              <div class="strength-foot">
-                <span class="power-dot" id="powerDot"></span>
-                <span class="power-label" id="powerLabel">Low Power</span>
-              </div>
+              <span class="strength-label">Spin Power</span>
             </div>
           </div>
         </div>
@@ -91,7 +91,7 @@
       </section>
 
       <!-- ENTRY MANAGEMENT — beside the wheel -->
-      <section class="panel entries-panel" aria-label="Entry management">
+      <section class="panel entries-panel" id="entriesPanel" aria-label="Entry management">
         <div class="panel-heading">
           <h2>Wheel Entries</h2>
           <span class="mini-tag" id="entryCountMini">6 items</span>
@@ -109,7 +109,7 @@
       </div>
 
       <!-- SIDE CONTROLS -->
-      <aside class="side-column">
+      <aside class="side-column" id="sideColumn" hidden>
         <!-- MANUAL POSITIONING -->
         <section class="panel" aria-label="Manual positioning">
           <div class="panel-heading">
@@ -179,7 +179,6 @@
       <div class="confetti-burst" aria-hidden="true">🎉</div>
       <p class="modal-kicker">THE WINNER IS</p>
       <h2 class="winner-name" id="winnerName">—</h2>
-      <div class="winner-stats" id="winnerStats"></div>
       <div class="modal-actions">
         <button class="primary-btn" id="spinAgainBtn" type="button">Spin Again</button>
         <button class="wide-btn ghost" id="closeModalBtn" type="button">Close</button>
